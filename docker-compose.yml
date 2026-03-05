@@ -1,0 +1,41 @@
+services:
+  # MySQL データベース（課題1）
+  db:
+    image: mysql:8.0
+    container_name: compass-mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: compass
+      MYSQL_USER: compass_user
+      MYSQL_PASSWORD: compass_pass
+    ports:
+      - "43306:3306"
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d
+      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Java Web サーバー（課題2）
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: compass-api
+    ports:
+      - "48080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/compass?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: compass_user
+      SPRING_DATASOURCE_PASSWORD: compass_pass
+
+volumes:
+  mysql-data:
